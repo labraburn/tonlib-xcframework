@@ -72,7 +72,7 @@ struct TON: AwaitingParsableCommand {
                 #!/bin/sh
                 cd \(sourceURL.relativePath)
                 git checkout labraburn
-                git pull
+                git pull --rebase
                 git submodule update --init --recursive
                 git submodule sync --recursive
                 """,
