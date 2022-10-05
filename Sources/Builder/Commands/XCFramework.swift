@@ -12,6 +12,9 @@ struct XCFramework: AwaitingParsableCommand {
     @Option(help: "The output directory of generated XCFrameworks.")
     var output: String?
     
+    @Option(wrappedValue: BuildPlatform.targets, help: "Specify build targets.")
+    var targets: [BuildPlatform]
+    
     @Flag(wrappedValue: false, help: "Use this flag to force rebuild OpenSSL and TON libraries.")
     var clean: Bool
     
@@ -73,7 +76,8 @@ struct XCFramework: AwaitingParsableCommand {
         let buildedLibrariesURL = try library.outputURL()
         
         if !(try library.buildExists()) || clean {
-            var command = try library.buildCommand().parse([])
+            let arguments: [String] = ["--targets"] + targets.map { "\($0.rawValue)" }.joined(separator: " --targets ").split(separator: " ").map { String($0) }
+            var command = try library.buildCommand().parse(arguments)
             try await command.run()
         } else {
             let url = try library.outputURL()
@@ -84,6 +88,7 @@ struct XCFramework: AwaitingParsableCommand {
         var arguments = [String]()
         
         platforms.forEach({ platform in
+            if !targets.contains(platform) { return }
             let platfromLibraryDirectoryURL = buildedLibrariesURL.appendingPathComponent(platform.buildURLPathComponent())
             let platfromLibraryURL = platfromLibraryDirectoryURL.appendingPathComponent("lib/\(library.libraryName)")
             let platfromIncludeURL = platfromLibraryDirectoryURL.appendingPathComponent("include")

@@ -17,6 +17,9 @@ struct OpenSSL: AwaitingParsableCommand {
     @Option(wrappedValue: "1.1.1i", help: "The version of OpenSSL library (1.1.1i or another).")
     var version: String
     
+    @Option(wrappedValue: BuildPlatform.targets, help: "Specify build targets. Target list: \(BuildPlatform.targets.map { $0.rawValue })")
+    var targets: [BuildPlatform]
+    
     @Flag(wrappedValue: false, help: "Enables enable-ec_nistp_64_gcc_128 for arm64 builds.")
     var nistp64gcc128: Bool
     
@@ -44,6 +47,8 @@ struct OpenSSL: AwaitingParsableCommand {
         try Resource.openSSLPlatforms.write(into: configurationsURL)
         
         for platform in BuildPlatform.targets {
+            if !targets.contains(platform) && platform != .macOS { continue }
+            
             try await build(
                 for: platform,
                 configurationsURL: configurationsURL,
@@ -200,6 +205,9 @@ struct OpenSSL: AwaitingParsableCommand {
             try execute(
                 """
                 #!/bin/sh
+                XCODE_SELECT_PATH="$(xcode-select -p)"
+                export LDFLAGS="-L$XCODE_SELECT_PATH/Platforms/\(platform.xcodeSDKName).platform/Developer/SDKs/\(platform.xcodeSDKName).sdk/usr/lib $LDFLAGS"
+                export CPPFLAGS="-I$XCODE_SELECT_PATH/Platforms/\(platform.xcodeSDKName).platform/Developer/SDKs/\(platform.xcodeSDKName).sdk/usr/include $CPPFLAGS"
                 cd \(sourceArchURL.relativePath)
                 perl ./Configure \(openSSLTarget) --prefix=\(archURL.relativePath) \(options)
                 make -j\(threads)
