@@ -14,6 +14,9 @@ struct TON: AwaitingParsableCommand {
         abstract: "Builds TON for Apple devices."
     )
     
+    @Option(wrappedValue: BuildPlatform.targets, help: "Specify build targets. Target list: \(BuildPlatform.targets.map { $0.rawValue })")
+    var targets: [BuildPlatform]
+    
     mutating func run() async throws {
         let fileManager = FileManager.default
         
@@ -34,6 +37,8 @@ struct TON: AwaitingParsableCommand {
         
         try prepare(sourceURL: sourceURL, to: outputURL)
         for platform in BuildPlatform.targets {
+            if !targets.contains(platform) { continue }
+            
             try await build(
                 for: platform,
                 sourceURL: sourceURL,
@@ -141,6 +146,9 @@ struct TON: AwaitingParsableCommand {
         
         try execute(
             """
+            XCODE_SELECT_PATH="$(xcode-select -p)"
+            export LDFLAGS="-L$XCODE_SELECT_PATH/Platforms/\(platform.xcodeSDKName).platform/Developer/SDKs/\(platform.xcodeSDKName).sdk/usr/lib $LDFLAGS"
+            export CPPFLAGS="-I$XCODE_SELECT_PATH/Platforms/\(platform.xcodeSDKName).platform/Developer/SDKs/\(platform.xcodeSDKName).sdk/usr/include $CPPFLAGS"
             cd \(targetURL.relativePath)
             cmake \(options.joined(separator: " ")) \(sourceURL.relativePath) || exit
             cmake --build . --target prepare_cross_compiling || exit
@@ -208,6 +216,9 @@ struct TON: AwaitingParsableCommand {
             
             try execute(
                 """
+                XCODE_SELECT_PATH="$(xcode-select -p)"
+                export LDFLAGS="-L$XCODE_SELECT_PATH/Platforms/\(platform.xcodeSDKName).platform/Developer/SDKs/\(platform.xcodeSDKName).sdk/usr/lib $LDFLAGS"
+                export CPPFLAGS="-I$XCODE_SELECT_PATH/Platforms/\(platform.xcodeSDKName).platform/Developer/SDKs/\(platform.xcodeSDKName).sdk/usr/include $CPPFLAGS"
                 cd \(buildURL.relativePath)
                 cmake \(options.joined(separator: " ")) \(sourceURL.relativePath) || exit
                 make -j\(threads) install || exit

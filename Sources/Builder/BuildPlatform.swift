@@ -3,8 +3,9 @@
 //
 
 import Foundation
+import ArgumentParser
 
-enum BuildPlatform: String {
+enum BuildPlatform: String, ExpressibleByArgument, CustomStringConvertible {
     
     static var targets: [BuildPlatform] = [
         .iOS, .iOSSimulator,
@@ -22,6 +23,21 @@ enum BuildPlatform: String {
     case watchOSSimulator = "watchsimulator"
     case macOS = "macosx"
     case macCatalyst = "maccatalyst"
+    
+    var xcodeSDKName: String {
+        switch self {
+        case .iOS: return "iPhoneOS"
+        case .iOSSimulator: return "iPhoneSimulator"
+        case .tvOS: return "AppleTVOS"
+        case .tvOSSimulator: return "AppleTVSimulator"
+        case .watchOS: return "WatchOS"
+        case .watchOSSimulator: return "WatchSimulator"
+        case .macOS: return "MacOSX"
+        case .macCatalyst: return "MacOSX"
+        }
+    }
+    
+    var description: String { self.rawValue }
     
     func applePlatform() -> String {
         switch self {
